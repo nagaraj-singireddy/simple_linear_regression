@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Makes the page scale correctly on phones and tablets -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Height to Weight Predictor</title>
+
+  <!--
+    PROJECT: Person Height to Weight Prediction using Simple Linear Regression
+
+    Input  : Height in meters
+    Output : Predicted weight in kilograms
+    Model  : Simple Linear Regression
+
+    REFERENCE EQUATION from the trained model (for documentation only,
+    it is NOT calculated anywhere in this file):
+
+        Weight = (63.1317191283293 x Height) - 42.178608958837785
+  -->
+
+  <style>
+    /* ==========================================================
+       1. COLOURS AND BASIC SETTINGS
+       Colours are stored as variables so they are easy to change.
+       ========================================================== */
+    :root {
+      --blue: #1a5fb4;          /* main blue for the button and heading */
+      --blue-dark: #144c92;     /* darker blue for button hover */
+      --blue-light: #eaf4ff;    /* very light blue for backgrounds */
+      --blue-border: #cfe2f7;   /* light blue for borders */
+      --text: #1f2d3d;          /* main text colour */
+      --text-soft: #5a6b7d;     /* softer text for hints and labels */
+      --error: #b3261e;         /* red used for the validation message */
+    }
+
+    /* Include padding and border in the width of every element */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ==========================================================
+       2. PAGE LAYOUT
+       White background, content centred, footer at the bottom.
+       ========================================================== */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    /* Centred container that holds the main content */
+    .container {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 48px 20px 32px;
+    }
+
+    /* ==========================================================
+       3. HEADER (heading and short description)
+       ========================================================== */
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--blue);
+    }
+
+    header p {
+      margin: 0 auto;
+      max-width: 440px;
+      color: var(--text-soft);
+      font-size: 1.05rem;
+    }
+
+    /* ==========================================================
+       4. MAIN CARD (white box with a light blue border and soft shadow)
+       ========================================================== */
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--blue-border);
+      border-top: 5px solid #9cc7f2;      /* light blue accent line */
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 18px rgba(26, 95, 180, 0.08);
+    }
+
+    /* ==========================================================
+       5. FORM (label, input box, hint, button)
+       ========================================================== */
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text);
+      background: #ffffff;
+      border: 1px solid #b7cde6;
+      border-radius: 10px;
+    }
+
+    input[type="number"]::placeholder {
+      color: #8a9bb0;
+    }
+
+    /* Clear blue outline when the box is selected (helps keyboard users) */
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.18);
+    }
+
+    /* Small helper text under the input */
+    .hint {
+      margin: 8px 0 0;
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    /* Validation message: hidden until the browser says the typed value is invalid */
+    .error {
+      display: none;
+      margin: 8px 0 0;
+      font-size: 0.9rem;
+      color: var(--error);
+    }
+
+    /* If the box is not empty AND its value is invalid (out of range),
+       show the red border and message, and hide the normal hint.
+       This is done with pure CSS, no JavaScript. */
+    input[type="number"]:not(:placeholder-shown):invalid {
+      border-color: var(--error);
+    }
+    input[type="number"]:not(:placeholder-shown):invalid ~ .error {
+      display: block;
+    }
+    input[type="number"]:not(:placeholder-shown):invalid ~ .hint {
+      display: none;
+    }
+
+    /* The blue Predict Weight button */
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px 20px;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ffffff;
+      background: var(--blue);
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(26, 95, 180, 0.3);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: var(--blue-dark);
+    }
+
+    button:focus-visible {
+      outline: 3px solid #9cc7f2;
+      outline-offset: 2px;
+    }
+
+    /* ==========================================================
+       6. RESULT SECTION (where the predicted weight will be shown)
+       ========================================================== */
+    .result {
+      margin-top: 28px;
+      padding: 24px;
+      text-align: center;
+      background: var(--blue-light);
+      border: 1px solid var(--blue-border);
+      border-radius: 12px;
+      scroll-margin-top: 20px;
+    }
+
+    .result h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-soft);
+    }
+
+    /* Large placeholder number for the future prediction */
+    .result-value {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 3rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--blue);
+    }
+
+    .result-value .unit {
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--text-soft);
+    }
+
+    .result-height {
+      margin: 4px 0 0;
+      color: var(--text-soft);
+    }
+
+    .result-note {
+      margin: 16px 0 0;
+      padding-top: 14px;
+      border-top: 1px solid var(--blue-border);
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    /* The "demo" note stays hidden until the form is submitted.
+       The form points to #result, and :target matches that section
+       after the click, so CSS alone can swap the two messages. */
+    .demo-note {
+      display: none;
+    }
+    .result:target .demo-note {
+      display: block;
+    }
+    .result:target .default-note {
+      display: none;
+    }
+
+    /* ==========================================================
+       7. ABOUT THE MODEL (reference information)
+       ========================================================== */
+    .model-info {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--blue-border);
+    }
+
+    .model-info h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      color: var(--text);
+    }
+
+    .model-info dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: 130px 1fr;   /* label column and value column */
+      gap: 8px 12px;
+      font-size: 0.95rem;
+    }
+
+    .model-info dt {
+      font-weight: 600;
+      color: var(--text-soft);
+    }
+
+    .model-info dd {
+      margin: 0;
+      overflow-wrap: anywhere;            /* lets the long equation wrap on small screens */
+    }
+
+    /* ==========================================================
+       8. FOOTER
+       ========================================================== */
+    footer {
+      margin-top: auto;                   /* pushes the footer to the bottom of the page */
+      padding: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-soft);
+      background: var(--blue-light);
+      border-top: 1px solid var(--blue-border);
+    }
+
+    /* ==========================================================
+       9. RESPONSIVE DESIGN
+       ========================================================== */
+
+    /* Tablets */
+    @media (max-width: 768px) {
+      .container {
+        padding-top: 36px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+    }
+
+    /* Mobile phones */
+    @media (max-width: 480px) {
+      .container {
+        padding: 28px 14px 24px;
+      }
+      h1 {
+        font-size: 1.65rem;
+      }
+      header p {
+        font-size: 1rem;
+      }
+      .card {
+        padding: 22px 18px;
+      }
+      input[type="number"] {
+        font-size: 0.95rem;
+      }
+      .result-value {
+        font-size: 2.4rem;
+      }
+      /* Stack the model details: label above value */
+      .model-info dl {
+        grid-template-columns: 1fr;
+        gap: 2px;
+      }
+      .model-info dd {
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main content, centred on the page -->
+  <main class="container">
+
+    <!-- Heading and short description -->
+    <header>
+      <h1>Height to Weight Predictor</h1>
+      <p>
+        This application predicts a person's weight in kilograms based on their
+        height in meters, using a Simple Linear Regression model.
+      </p>
+    </header>
+
+    <div class="card">
+
+      <!--
+        Input form.
+        - "required", "min" and "max" give built-in browser validation messages.
+        - action="#result" jumps to the result section after clicking the button.
+        - Later, a backend (for example Flask) could replace action="#result"
+          with the real prediction address.
+      -->
+      <form action="/predict" method="post">
+        <label for="height">Height (meters)</label>
+
+        <input
+          type="number"
+          id="height"
+          name="height"
+          placeholder="Enter height in meters (e.g., 1.70)"
+          min="1"
+          max="2.5"
+          step="any"
+          required
+          aria-describedby="height-hint height-error"
+        >
+
+        <!-- Normal hint, and an error message that appears for out-of-range values -->
+        <p class="hint" id="height-hint">Enter a value between 1.00 and 2.50 meters.</p>
+        <p class="error" id="height-error">Please enter a valid height between 1.00 and 2.50 meters.</p>
+
+        <button type="submit">Predict Weight</button>
+      </form>
+
+      <!-- Result section: shows the predicted weight in kilograms -->
+      <section class="result" id="result" aria-labelledby="result-title">
+        <h2 id="result-title">
+          Predicted Weight:<br>
+          {{prediction_weight}}  <span class="unit">Kgs</span></h2>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    Developed by singireddy Nagaraju
+  </footer>
+</body>
+</html>
